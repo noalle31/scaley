@@ -2,8 +2,9 @@ const STAFF_LAYOUT = {
     fallbackWidth: 900,
 
     render: { 
-        minWidth: 1000, 
-        widthRatio: 0.99, 
+        minWidth: 700,
+        maxWidth: 1200,
+        widthRatio: 0.78,
         minHeight: 360, 
         heightRatio: 0.33 
     },
@@ -15,12 +16,12 @@ const STAFF_LAYOUT = {
 };
 
 function getStaffLayoutFromWidth(containerWidth) {
-    const { minWidth, widthRatio, minHeight, heightRatio } = STAFF_LAYOUT.render;
+    const { minWidth, maxWidth, widthRatio, minHeight, heightRatio } = STAFF_LAYOUT.render;
     const { xRatio, yRatio } = STAFF_LAYOUT.stave;
 
-    const width = Math.max(
-        minWidth,
-        Math.floor(containerWidth * widthRatio)
+    const width = Math.min(
+        maxWidth,
+        Math.max(minWidth, Math.floor(containerWidth * widthRatio))
     );
     const height = Math.max(
         minHeight, 

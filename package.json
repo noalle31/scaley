@@ -4,7 +4,7 @@
   "description": "",
   "main": "bundle.js",
   "scripts": {
-    "build:web": "browserify src/app/web-ui.js -o public/dist/bundle.js",
+    "build:web": "browserify src/app/web-ui.js -o dist/bundle.js",
     "test": "npm run build:web && npx playwright test",
     "test:ui": "npm run build:web && npx playwright test --ui"
   },

@@ -19,57 +19,135 @@ const optionsEl = document.getElementById("options");
 const headerEl = document.getElementById("header");
 const staffEl = document.getElementById("staff");
 
+function renderMenuSection(label, menuName, options, selectedIndex, activeMenu) {
+    const section = document.createElement("div");
+    section.className = "menu-section";
+    section.dataset.menuSection = menuName;
+
+    const heading = document.createElement("div");
+    heading.className = "menu-heading";
+    heading.textContent = label;
+    section.appendChild(heading);
+
+    options.forEach((opt, idx) => {
+        const div = document.createElement("div");
+        div.textContent = opt;
+        div.dataset.menu = menuName;
+        div.dataset.index = String(idx);
+
+        const isSelected = idx === selectedIndex;
+        div.classList.toggle("is-selected", isSelected);
+
+        div.style.cursor = "pointer";
+        div.addEventListener("click", () => onOptionsTap(menuName, idx));
+        section.appendChild(div);
+    });
+
+    return section;
+}
+
+function renderScaleIfReady() {
+    const state = menu.getState()
+
+    if (state.selectedRoot && state.selectedType) {
+        const notes = buildScale(state.selectedRoot, state.selectedType);
+        renderStaff({
+            root: state.selectedRoot,
+            type: state.selectedType,
+            notes
+        });
+        return;
+    }
+
+    staffEl.innerHTML = "";
+}
+
 function render() {
     const state = menu.getState();
-    const options = menu.getOptions();
 
     titleEl.textContent = menu.getTitle();
     headerEl.textContent = "Scaley - The Magical Scale Builder"
 
     optionsEl.innerHTML = "";
 
-    options.forEach((opt, idx) => {
-        const div = document.createElement("div");
-        div.textContent = (idx === state.selectedIndex ? "> " : "  ") + opt;
-        optionsEl.appendChild(div);
-    });
+    const rootSection = renderMenuSection(
+        "Root",
+        "root",
+        menu.getRootOptions(),
+        state.rootIndex,
+        state.activeMenu
+    );
 
-    const stateNow = menu.getState();
+    const typeSection = renderMenuSection(
+        "Type",
+        "type",
+        menu.getTypeOptions(),
+        state.typeIndex,
+        state.activeMenu
+    );
 
-    if (stateNow.done && stateNow.selectedRoot && stateNow.selectedType) {
-        const notes = buildScale(stateNow.selectedRoot, stateNow.selectedType);
-        renderStaff({ 
-            root: stateNow.selectedRoot, 
-            type: stateNow.selectedType, 
-            notes 
-        });
-    }
+    optionsEl.appendChild(rootSection);
+    optionsEl.appendChild(typeSection);
+
+    renderScaleIfReady();
+}
+
+function onOptionsTap(menuName, idx) {
+    menu.setActiveMenu(menuName);
+    menu.pick(menuName, idx);
+    render();
+}
+
+function onMoveDown() {
+    menu.moveDown();
+    render();
+}
+
+function onMoveUp() {
+    menu.moveUp();
+    render(); 
+}
+
+function onMoveLeftOrRight() {
+    menu.toggleActiveMenu();
+    render();
+}
+
+function onEnter() {
+    menu.enter();
+    render();
+}
+
+function onReset() {
+    menu.reset();
+    render();
+    staffEl.innerHTML = "";
 }
 
 document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowDown") {
         e.preventDefault();
-        menu.moveDown();
-        render();
+        onMoveDown();
     }
 
     if (e.key === "ArrowUp") {
        e.preventDefault();
-       menu.moveUp();
-       render(); 
+       onMoveUp();
+    }
+
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        onMoveLeftOrRight();
     }
 
     if (e.key === "Enter") {
         e.preventDefault();
-        menu.enter();
-        render();
+        onEnter();
     }
 
     if (e.key === "r" || e.key === "R") {
         e.preventDefault();
-        menu.reset();
-        render();
-        staffEl.innerHTML = "";
+        onReset();
     }
 });
     
@@ -399,71 +477,120 @@ const { ROOT_OPTIONS, TYPE_OPTIONS } = require("../domain/scale-types");
 
 function createMenu() {
   const state = {
-    menu: "root", // "root" || "type"
+    rootIndex: 0,
+    typeIndex: 0,
+    activeMenu: "root", // "root" || "type"
     selectedIndex: 0,
     selectedRoot: null,
     selectedType: null,
-    done: false
   };
 
   function getState() {
     return {...state};
   }
 
-  function getOptions() {
-    return state.menu === "root" ? ROOT_OPTIONS : TYPE_OPTIONS;
+  function getRootOptions() {
+    return ROOT_OPTIONS;
+  }
+
+  function getTypeOptions() {
+    return TYPE_OPTIONS;
   }
 
   function getTitle() {
-    return state.menu === "root" ? "Choose a root" : "Choose a type"
+    return "Choose a root note and a scale type";
   }
 
-  function moveDown() {
-    const options = getOptions();
-    if (state.selectedIndex < options.length - 1) {
-      state.selectedIndex += 1;
+  function setActiveMenu(menuName) {
+    if (menuName === "root" || menuName === "type") {
+      state.activeMenu = menuName;
     }
   }
 
-  function moveUp() {
-    if (state.selectedIndex > 0) {
-      state.selectedIndex -= 1;
+  function toggleActiveMenu() {
+    state.activeMenu = state.activeMenu === "root" ? "type" : "root";
+  }
+
+  function moveDown(menuName = state.activeMenu) {
+    if (menuName === "root") {
+      if (state.rootIndex < ROOT_OPTIONS.length - 1) {
+        state.rootIndex += 1;
+      }
+      return;
+    }
+
+    if (state.typeIndex < TYPE_OPTIONS.length - 1) {
+      state.typeIndex += 1;
     }
   }
 
-  function enter() {
-    if (state.menu === "root") {
-      state.selectedRoot = ROOT_OPTIONS[state.selectedIndex];
-      state.menu = "type";
-      state.selectedIndex = 0;
-      return null;
+  function moveUp(menuName = state.activeMenu) {
+    if (menuName === "root") {
+      if (state.rootIndex > 0) {
+        state.rootIndex -= 1;
+      }
+      return;
     }
 
-    // menu === "type"
-    state.selectedType = TYPE_OPTIONS[state.selectedIndex];
-    state.done = true;
+    if (state.typeIndex > 0) {
+      state.typeIndex -= 1;
+    }
+  } 
 
-    return {
-      root: state.selectedRoot,
-      type: state.selectedType
-    };
+  function enter(menuName = state.activeMenu) {
+    if (menuName === "root") {
+      state.selectedRoot = ROOT_OPTIONS[state.rootIndex];
+    } else {
+      state.selectedType = TYPE_OPTIONS[state.typeIndex];
+    }
+
+    if (state.selectedRoot && state.selectedType) {
+      return {
+        root: state.selectedRoot,
+        type: state.selectedType
+      };
+    }
+
+    return null;
+  }
+
+  function pick(menuName, idx) {
+    if (menuName === "root") {
+      if (idx >= 0 && idx < ROOT_OPTIONS.length) {
+        state.rootIndex = idx;
+        state.selectedRoot = ROOT_OPTIONS[idx];
+      }
+    } else if (menuName === "type") {
+      if (idx >= 0 && idx < TYPE_OPTIONS.length) {
+        state.typeIndex = idx;
+        state.selectedType = TYPE_OPTIONS[idx];
+      }
+    }
+
+    return state.selectedRoot && state.selectedType
+    ? { root: state.selectedRoot, type: state.selectedType }
+    : null
   }
 
   function reset() {
-    state.menu = "root";
-    state.selectedIndex = 0;
+    state.activeMenu = "root";
+    state.rootIndex = 0;
+    state.typeIndex = 0;
     state.selectedRoot = null;
-    state.selectedType = null,
-    state.done = false;
+    state.selectedType = null;
   }
 
   return {
     getState,
-    getOptions,
+    getRootOptions,
+    getTypeOptions,
     getTitle,
+    setActiveMenu,
+    toggleActiveMenu,
     moveDown,
     moveUp,
     enter,
+    pick,
     reset
   };
 }
@@ -602,8 +729,9 @@ const STAFF_LAYOUT = {
     fallbackWidth: 900,
 
     render: { 
-        minWidth: 1000, 
-        widthRatio: 0.99, 
+        minWidth: 700,
+        maxWidth: 1200,
+        widthRatio: 0.78,
         minHeight: 360, 
         heightRatio: 0.33 
     },
@@ -615,12 +743,12 @@ const STAFF_LAYOUT = {
 };
 
 function getStaffLayoutFromWidth(containerWidth) {
-    const { minWidth, widthRatio, minHeight, heightRatio } = STAFF_LAYOUT.render;
+    const { minWidth, maxWidth, widthRatio, minHeight, heightRatio } = STAFF_LAYOUT.render;
     const { xRatio, yRatio } = STAFF_LAYOUT.stave;
 
-    const width = Math.max(
-        minWidth,
-        Math.floor(containerWidth * widthRatio)
+    const width = Math.min(
+        maxWidth,
+        Math.max(minWidth, Math.floor(containerWidth * widthRatio))
     );
     const height = Math.max(
         minHeight, 
@@ -646,4 +774,5 @@ function getStaffLayout(staffEl) {
 module.exports = {
     getStaffLayout
 };
+
 },{}]},{},[2]);
