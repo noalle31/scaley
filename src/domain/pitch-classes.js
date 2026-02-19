@@ -44,15 +44,9 @@ function buildTargetPcs(rootPc, pattern) {
   return pcs;
 }
 
-function transposeRoot(root, semitones) {
-  const targetPc = (rootToPc(root) + semitones + 120 ) % 12;
-  return ROOT_OPTIONS.find((r) => rootToPc(r) === targetPc) || root;
-}
-
 module.exports = {
   NATURAL_PITCH_CLASSES,
   parseRoot,
   rootToPc,
   buildTargetPcs,
-  transposeRoot
 };

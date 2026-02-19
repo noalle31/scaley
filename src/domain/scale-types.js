@@ -32,22 +32,6 @@ const MINOR_TYPES = new Set([
     "Melodic Minor"
 ]);
 
-const MODE_TYPES = new Set([
-    "Dorian",
-    "Phrygian",
-    "Lydian",
-    "Mixolydian",
-    "Locrian"
-]);
-
-const MODE_TO_REL_MAJOR_SEMITONES = {
-    "Dorian": -2,
-    "Phrygian": -4,
-    "Lydian": -5,
-    "Mixolydian": -7,
-    "Locrian": +1
-};
-
 const SCALE_PATTERNS = { 
     MAJOR_PATTERN: [2, 2, 1, 2, 2, 2, 1],
     NATURAL_MINOR_PATTERN: [2, 1, 2, 2, 1, 2, 2],
@@ -64,7 +48,5 @@ module.exports = {
   ROOT_OPTIONS,
   TYPE_OPTIONS,
   MINOR_TYPES,
-  MODE_TYPES,
-  MODE_TO_REL_MAJOR_SEMITONES,
   ...SCALE_PATTERNS
 };

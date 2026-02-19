@@ -239,8 +239,7 @@ module.exports = {
 };
 
 },{"./note-letters":5,"./pitch-classes":6,"./scale-types":7}],4:[function(require,module,exports){
-const { MINOR_TYPES, MODE_TYPES, MODE_TO_REL_MAJOR_SEMITONES } = require("./scale-types");
-const { transposeRoot } = require("./pitch-classes");
+const { MINOR_TYPES } = require("./scale-types");
 
 const SHARP_ORDER = ["F", "C", "G", "D", "A", "E", "B"];
 const FLAT_ORDER  = ["B", "E", "A", "D", "G", "C", "F"];
@@ -285,12 +284,6 @@ function getKeySignature(root, type) {
     if (MINOR_TYPES.has(type)) return `${root}m`;
 
     // Modes
-    if (MODE_TYPES.has(type)) {
-        const semitones = MODE_TO_REL_MAJOR_SEMITONES[type];
-        const relativeMajor = transposeRoot(root, semitones);
-        return relativeMajor;
-    }
-
     return null;
 }
 
@@ -328,7 +321,7 @@ module.exports = {
     getKeySigAccidentals
 };
 
-},{"./pitch-classes":6,"./scale-types":7}],5:[function(require,module,exports){
+},{"./scale-types":7}],5:[function(require,module,exports){
 const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
 
 function noteToLetter(noteName) {
@@ -403,17 +396,11 @@ function buildTargetPcs(rootPc, pattern) {
   return pcs;
 }
 
-function transposeRoot(root, semitones) {
-  const targetPc = (rootToPc(root) + semitones + 120 ) % 12;
-  return ROOT_OPTIONS.find((r) => rootToPc(r) === targetPc) || root;
-}
-
 module.exports = {
   NATURAL_PITCH_CLASSES,
   parseRoot,
   rootToPc,
   buildTargetPcs,
-  transposeRoot
 };
 
 },{"./scale-types":7}],7:[function(require,module,exports){
@@ -451,22 +438,6 @@ const MINOR_TYPES = new Set([
     "Melodic Minor"
 ]);
 
-const MODE_TYPES = new Set([
-    "Dorian",
-    "Phrygian",
-    "Lydian",
-    "Mixolydian",
-    "Locrian"
-]);
-
-const MODE_TO_REL_MAJOR_SEMITONES = {
-    "Dorian": -2,
-    "Phrygian": -4,
-    "Lydian": -5,
-    "Mixolydian": -7,
-    "Locrian": +1
-};
-
 const SCALE_PATTERNS = { 
     MAJOR_PATTERN: [2, 2, 1, 2, 2, 2, 1],
     NATURAL_MINOR_PATTERN: [2, 1, 2, 2, 1, 2, 2],
@@ -483,8 +454,6 @@ module.exports = {
   ROOT_OPTIONS,
   TYPE_OPTIONS,
   MINOR_TYPES,
-  MODE_TYPES,
-  MODE_TO_REL_MAJOR_SEMITONES,
   ...SCALE_PATTERNS
 };
 },{}],8:[function(require,module,exports){

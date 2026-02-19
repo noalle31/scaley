@@ -1,5 +1,4 @@
-const { MINOR_TYPES, MODE_TYPES, MODE_TO_REL_MAJOR_SEMITONES } = require("./scale-types");
-const { transposeRoot } = require("./pitch-classes");
+const { MINOR_TYPES } = require("./scale-types");
 
 const SHARP_ORDER = ["F", "C", "G", "D", "A", "E", "B"];
 const FLAT_ORDER  = ["B", "E", "A", "D", "G", "C", "F"];
@@ -44,12 +43,6 @@ function getKeySignature(root, type) {
     if (MINOR_TYPES.has(type)) return `${root}m`;
 
     // Modes
-    if (MODE_TYPES.has(type)) {
-        const semitones = MODE_TO_REL_MAJOR_SEMITONES[type];
-        const relativeMajor = transposeRoot(root, semitones);
-        return relativeMajor;
-    }
-
     return null;
 }
 
