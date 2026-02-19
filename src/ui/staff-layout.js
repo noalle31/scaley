@@ -1,17 +1,17 @@
 const STAFF_LAYOUT = {
     fallbackWidth: 900,
 
-    render: { 
-        minWidth: 700,
+    render: {
+        minWidth: 320,
         maxWidth: 1200,
-        widthRatio: 0.78,
-        minHeight: 360, 
-        heightRatio: 0.33 
+        widthRatio: 0.95,
+        minHeight: 180,
+        heightRatio: 0.33
     },
 
-    stave: { 
-        xRatio: 0.0015, 
-        yRatio: 0.20 
+    stave: {
+        xRatio: 0.02,
+        yRatio: 0.20
     },
 };
 

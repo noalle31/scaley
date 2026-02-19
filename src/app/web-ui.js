@@ -1,5 +1,6 @@
 const { createMenu } = require("../ui/menu");
 const { buildScale } = require("../domain/build-scale");
+const { getEnharmonicSuggestion } = require("../domain/theoretical-keys");
 const { renderStaff } = require("../ui/render-staff");
 
 console.log("web-ui loader");
@@ -10,6 +11,10 @@ const titleEl = document.getElementById("title");
 const optionsEl = document.getElementById("options");
 const headerEl = document.getElementById("header");
 const staffEl = document.getElementById("staff");
+
+function setStaffMode(mode) {
+    staffEl.dataset.mode = mode;
+}
 
 function renderMenuSection(label, menuName, options, selectedIndex, activeMenu) {
     const section = document.createElement("div");
@@ -42,6 +47,14 @@ function renderScaleIfReady() {
     const state = menu.getState()
 
     if (state.selectedRoot && state.selectedType) {
+        const suggestion = getEnharmonicSuggestion(state.selectedRoot, state.selectedType);
+        if (suggestion) {
+            setStaffMode("message");
+            staffEl.innerHTML = `<p id="staff-message">${suggestion.original} is unavailable. Try ${suggestion.suggested} instead.</p>`;
+            return;
+        }
+
+        setStaffMode("staff");
         const notes = buildScale(state.selectedRoot, state.selectedType);
         renderStaff({
             root: state.selectedRoot,
@@ -51,6 +64,7 @@ function renderScaleIfReady() {
         return;
     }
 
+    setStaffMode("empty");
     staffEl.innerHTML = "";
 }
 
@@ -113,6 +127,7 @@ function onEnter() {
 function onReset() {
     menu.reset();
     render();
+    setStaffMode("empty");
     staffEl.innerHTML = "";
 }
 

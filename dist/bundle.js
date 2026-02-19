@@ -8,6 +8,7 @@
 },{}],2:[function(require,module,exports){
 const { createMenu } = require("../ui/menu");
 const { buildScale } = require("../domain/build-scale");
+const { getEnharmonicSuggestion } = require("../domain/theoretical-keys");
 const { renderStaff } = require("../ui/render-staff");
 
 console.log("web-ui loader");
@@ -18,6 +19,10 @@ const titleEl = document.getElementById("title");
 const optionsEl = document.getElementById("options");
 const headerEl = document.getElementById("header");
 const staffEl = document.getElementById("staff");
+
+function setStaffMode(mode) {
+    staffEl.dataset.mode = mode;
+}
 
 function renderMenuSection(label, menuName, options, selectedIndex, activeMenu) {
     const section = document.createElement("div");
@@ -50,6 +55,14 @@ function renderScaleIfReady() {
     const state = menu.getState()
 
     if (state.selectedRoot && state.selectedType) {
+        const suggestion = getEnharmonicSuggestion(state.selectedRoot, state.selectedType);
+        if (suggestion) {
+            setStaffMode("message");
+            staffEl.innerHTML = `<p id="staff-message">${suggestion.original} is unavailable. Try ${suggestion.suggested} instead.</p>`;
+            return;
+        }
+
+        setStaffMode("staff");
         const notes = buildScale(state.selectedRoot, state.selectedType);
         renderStaff({
             root: state.selectedRoot,
@@ -59,6 +72,7 @@ function renderScaleIfReady() {
         return;
     }
 
+    setStaffMode("empty");
     staffEl.innerHTML = "";
 }
 
@@ -121,6 +135,7 @@ function onEnter() {
 function onReset() {
     menu.reset();
     render();
+    setStaffMode("empty");
     staffEl.innerHTML = "";
 }
 
@@ -153,7 +168,7 @@ document.addEventListener("keydown", (e) => {
     
 render();
 
-},{"../domain/build-scale":3,"../ui/menu":8,"../ui/render-staff":9}],3:[function(require,module,exports){
+},{"../domain/build-scale":3,"../domain/theoretical-keys":8,"../ui/menu":9,"../ui/render-staff":10}],3:[function(require,module,exports){
 const { getLetterSequence } = require("./note-letters")
 const { NATURAL_PITCH_CLASSES, rootToPc, buildTargetPcs } = require("./pitch-classes");
 const SCALE_PATTERNS = require("./scale-types");
@@ -473,6 +488,29 @@ module.exports = {
   ...SCALE_PATTERNS
 };
 },{}],8:[function(require,module,exports){
+const { MINOR_TYPES } = require("./scale-types");
+
+const THEORETICAL_MINOR_SUGGESTIONS = {
+    Db: "C# minor",
+    Gb: "F# minor"
+};
+
+function getEnharmonicSuggestion(root, type) {
+    if (!MINOR_TYPES.has(type)) return null;
+    const enharmonic = THEORETICAL_MINOR_SUGGESTIONS[root];
+    if (!enharmonic) return null;
+
+    return {
+        original: `${root} minor`,
+        suggested: enharmonic
+    };
+}
+
+module.exports = {
+    getEnharmonicSuggestion
+};
+
+},{"./scale-types":7}],9:[function(require,module,exports){
 const { ROOT_OPTIONS, TYPE_OPTIONS } = require("../domain/scale-types");
 
 function createMenu() {
@@ -597,7 +635,7 @@ function createMenu() {
 
 module.exports = { createMenu };
 
-},{"../domain/scale-types":7}],9:[function(require,module,exports){
+},{"../domain/scale-types":7}],10:[function(require,module,exports){
 const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, Barline, Annotation } = require("vexflow");
 const { LETTERS, noteToLetter } = require("../domain/note-letters");
 const { getKeySignature, getKeySigCount, getKeySigAccidentals } = require("../domain/key-signature");
@@ -724,21 +762,21 @@ function drawNotes(context, stave, vexNotes, staveWidth) {
 
 module.exports = { renderStaff };
 
-},{"../domain/key-signature":4,"../domain/note-letters":5,"./staff-layout":10,"vexflow":1}],10:[function(require,module,exports){
+},{"../domain/key-signature":4,"../domain/note-letters":5,"./staff-layout":11,"vexflow":1}],11:[function(require,module,exports){
 const STAFF_LAYOUT = {
     fallbackWidth: 900,
 
-    render: { 
-        minWidth: 700,
+    render: {
+        minWidth: 320,
         maxWidth: 1200,
-        widthRatio: 0.78,
-        minHeight: 360, 
-        heightRatio: 0.33 
+        widthRatio: 0.95,
+        minHeight: 180,
+        heightRatio: 0.33
     },
 
-    stave: { 
-        xRatio: 0.0015, 
-        yRatio: 0.20 
+    stave: {
+        xRatio: 0.02,
+        yRatio: 0.20
     },
 };
 
