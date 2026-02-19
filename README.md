@@ -8,7 +8,7 @@ In the web app, you choose:
 - a root note (for example `C`, `F#`, or `Bb`)
 - a scale type (for example major, natural minor, harmonic minor, or melodic minor)
 
-Scaley then builds the full seven-note scale using correct note spelling for that key and renders the result on a musical stave in standard notation, including the appropriate key signature.
+Scaley then builds the full scale using correct note spelling for that key and renders the result on a musical stave in standard notation, including the appropriate key signature.
 
 ## Prerequisites
 
