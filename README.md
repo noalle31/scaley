@@ -1,10 +1,10 @@
 # Scaley 🎼
 
-A scale builder with proper diatonic spelling, key signatures, and Playwright tests.
+A simple musical scale builder.
 
 ## How It Works
 
-In the web app, you choose:
+Choose:
 - a root note (for example `C`, `F#`, or `Bb`)
 - a scale type (for example major, natural minor, harmonic minor, or melodic minor)
 
