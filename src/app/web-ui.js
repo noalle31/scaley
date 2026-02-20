@@ -1,72 +1,15 @@
 const { createMenu } = require("../ui/menu");
-const { buildScale } = require("../domain/build-scale");
-const { getEnharmonicSuggestion } = require("../domain/theoretical-keys");
-const { renderStaff } = require("../ui/render-staff");
-
-console.log("web-ui loader");
-
-const menu = createMenu();
+const { renderStaffOrMessage, setStaffMode } = require("../ui/render-staff-logic");
+const { renderMenuSection } = require("../ui/render-menu");
 
 const titleEl = document.getElementById("title");
 const optionsEl = document.getElementById("options");
 const headerEl = document.getElementById("header");
 const staffEl = document.getElementById("staff");
+const clefToggleEl = document.getElementById("clef-toggle");
 
-function setStaffMode(mode) {
-    staffEl.dataset.mode = mode;
-}
-
-function renderMenuSection(label, menuName, options, selectedIndex, activeMenu) {
-    const section = document.createElement("div");
-    section.className = "menu-section";
-    section.dataset.menuSection = menuName;
-
-    const heading = document.createElement("div");
-    heading.className = "menu-heading";
-    heading.textContent = label;
-    section.appendChild(heading);
-
-    options.forEach((opt, idx) => {
-        const div = document.createElement("div");
-        div.textContent = opt;
-        div.dataset.menu = menuName;
-        div.dataset.index = String(idx);
-
-        const isSelected = idx === selectedIndex;
-        div.classList.toggle("is-selected", isSelected);
-
-        div.style.cursor = "pointer";
-        div.addEventListener("click", () => onOptionsTap(menuName, idx));
-        section.appendChild(div);
-    });
-
-    return section;
-}
-
-function renderScaleIfReady() {
-    const state = menu.getState()
-
-    if (state.selectedRoot && state.selectedType) {
-        const suggestion = getEnharmonicSuggestion(state.selectedRoot, state.selectedType);
-        if (suggestion) {
-            setStaffMode("message");
-            staffEl.innerHTML = `<p id="staff-message">${suggestion.original} is unavailable. Try ${suggestion.suggested} instead.</p>`;
-            return;
-        }
-
-        setStaffMode("staff");
-        const notes = buildScale(state.selectedRoot, state.selectedType);
-        renderStaff({
-            root: state.selectedRoot,
-            type: state.selectedType,
-            notes
-        });
-        return;
-    }
-
-    setStaffMode("empty");
-    staffEl.innerHTML = "";
-}
+const menu = createMenu();
+let clef = "treble";
 
 function render() {
     const state = menu.getState();
@@ -81,7 +24,7 @@ function render() {
         "root",
         menu.getRootOptions(),
         state.rootIndex,
-        state.activeMenu
+        onOptionsTap
     );
 
     const typeSection = renderMenuSection(
@@ -89,14 +32,30 @@ function render() {
         "type",
         menu.getTypeOptions(),
         state.typeIndex,
-        state.activeMenu
+        onOptionsTap
     );
 
     optionsEl.appendChild(rootSection);
     optionsEl.appendChild(typeSection);
 
-    renderScaleIfReady();
+    renderStaffOrMessage(menu, staffEl, clef);
 }
+
+function onClefToggleTap() {
+    if (clef === "treble") {
+        clef = "bass";
+        clefToggleEl.textContent = "Bass"
+    } else {
+        clef = "treble";
+        clefToggleEl.textContent = "Treble"
+    }
+
+    render();
+}
+
+clefToggleEl.addEventListener("click", () => {
+    onClefToggleTap();
+});
 
 function onOptionsTap(menuName, idx) {
     menu.setActiveMenu(menuName);
@@ -111,7 +70,7 @@ function onMoveDown() {
 
 function onMoveUp() {
     menu.moveUp();
-    render(); 
+    render();
 }
 
 function onMoveLeftOrRight() {
@@ -127,7 +86,7 @@ function onEnter() {
 function onReset() {
     menu.reset();
     render();
-    setStaffMode("empty");
+    setStaffMode(staffEl, "empty");
     staffEl.innerHTML = "";
 }
 
@@ -157,5 +116,5 @@ document.addEventListener("keydown", (e) => {
         onReset();
     }
 });
-    
+
 render();

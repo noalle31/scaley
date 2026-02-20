@@ -7,74 +7,17 @@
 
 },{}],2:[function(require,module,exports){
 const { createMenu } = require("../ui/menu");
-const { buildScale } = require("../domain/build-scale");
-const { getEnharmonicSuggestion } = require("../domain/theoretical-keys");
-const { renderStaff } = require("../ui/render-staff");
-
-console.log("web-ui loader");
-
-const menu = createMenu();
+const { renderStaffOrMessage, setStaffMode } = require("../ui/render-staff-logic");
+const { renderMenuSection } = require("../ui/render-menu");
 
 const titleEl = document.getElementById("title");
 const optionsEl = document.getElementById("options");
 const headerEl = document.getElementById("header");
 const staffEl = document.getElementById("staff");
+const clefToggleEl = document.getElementById("clef-toggle");
 
-function setStaffMode(mode) {
-    staffEl.dataset.mode = mode;
-}
-
-function renderMenuSection(label, menuName, options, selectedIndex, activeMenu) {
-    const section = document.createElement("div");
-    section.className = "menu-section";
-    section.dataset.menuSection = menuName;
-
-    const heading = document.createElement("div");
-    heading.className = "menu-heading";
-    heading.textContent = label;
-    section.appendChild(heading);
-
-    options.forEach((opt, idx) => {
-        const div = document.createElement("div");
-        div.textContent = opt;
-        div.dataset.menu = menuName;
-        div.dataset.index = String(idx);
-
-        const isSelected = idx === selectedIndex;
-        div.classList.toggle("is-selected", isSelected);
-
-        div.style.cursor = "pointer";
-        div.addEventListener("click", () => onOptionsTap(menuName, idx));
-        section.appendChild(div);
-    });
-
-    return section;
-}
-
-function renderScaleIfReady() {
-    const state = menu.getState()
-
-    if (state.selectedRoot && state.selectedType) {
-        const suggestion = getEnharmonicSuggestion(state.selectedRoot, state.selectedType);
-        if (suggestion) {
-            setStaffMode("message");
-            staffEl.innerHTML = `<p id="staff-message">${suggestion.original} is unavailable. Try ${suggestion.suggested} instead.</p>`;
-            return;
-        }
-
-        setStaffMode("staff");
-        const notes = buildScale(state.selectedRoot, state.selectedType);
-        renderStaff({
-            root: state.selectedRoot,
-            type: state.selectedType,
-            notes
-        });
-        return;
-    }
-
-    setStaffMode("empty");
-    staffEl.innerHTML = "";
-}
+const menu = createMenu();
+let clef = "treble";
 
 function render() {
     const state = menu.getState();
@@ -89,7 +32,7 @@ function render() {
         "root",
         menu.getRootOptions(),
         state.rootIndex,
-        state.activeMenu
+        onOptionsTap
     );
 
     const typeSection = renderMenuSection(
@@ -97,14 +40,30 @@ function render() {
         "type",
         menu.getTypeOptions(),
         state.typeIndex,
-        state.activeMenu
+        onOptionsTap
     );
 
     optionsEl.appendChild(rootSection);
     optionsEl.appendChild(typeSection);
 
-    renderScaleIfReady();
+    renderStaffOrMessage(menu, staffEl, clef);
 }
+
+function onClefToggleTap() {
+    if (clef === "treble") {
+        clef = "bass";
+        clefToggleEl.textContent = "Bass"
+    } else {
+        clef = "treble";
+        clefToggleEl.textContent = "Treble"
+    }
+
+    render();
+}
+
+clefToggleEl.addEventListener("click", () => {
+    onClefToggleTap();
+});
 
 function onOptionsTap(menuName, idx) {
     menu.setActiveMenu(menuName);
@@ -119,7 +78,7 @@ function onMoveDown() {
 
 function onMoveUp() {
     menu.moveUp();
-    render(); 
+    render();
 }
 
 function onMoveLeftOrRight() {
@@ -135,7 +94,7 @@ function onEnter() {
 function onReset() {
     menu.reset();
     render();
-    setStaffMode("empty");
+    setStaffMode(staffEl, "empty");
     staffEl.innerHTML = "";
 }
 
@@ -165,10 +124,10 @@ document.addEventListener("keydown", (e) => {
         onReset();
     }
 });
-    
+
 render();
 
-},{"../domain/build-scale":3,"../domain/theoretical-keys":8,"../ui/menu":9,"../ui/render-staff":10}],3:[function(require,module,exports){
+},{"../ui/menu":9,"../ui/render-menu":10,"../ui/render-staff-logic":11}],3:[function(require,module,exports){
 const { getLetterSequence } = require("./note-letters")
 const { NATURAL_PITCH_CLASSES, rootToPc, buildTargetPcs } = require("./pitch-classes");
 const SCALE_PATTERNS = require("./scale-types");
@@ -605,6 +564,72 @@ function createMenu() {
 module.exports = { createMenu };
 
 },{"../domain/scale-types":7}],10:[function(require,module,exports){
+function renderMenuSection(label, menuName, options, selectedIndex, onOptionsTap) {
+    const section = document.createElement("div");
+    section.className = "menu-section";
+    section.dataset.menuSection = menuName;
+
+    const heading = document.createElement("div");
+    heading.className = "menu-heading";
+    heading.textContent = label;
+    section.appendChild(heading);
+
+    options.forEach((opt, idx) => {
+        const div = document.createElement("div");
+        div.textContent = opt;
+        div.dataset.menu = menuName;
+        div.dataset.index = String(idx);
+
+        const isSelected = idx === selectedIndex;
+        div.classList.toggle("is-selected", isSelected);
+
+        div.style.cursor = "pointer";
+        div.addEventListener("click", () => onOptionsTap(menuName, idx));
+        section.appendChild(div);
+    });
+
+    return section;
+}
+
+module.exports = { renderMenuSection };
+},{}],11:[function(require,module,exports){
+const { renderStaff } = require("./render-staff");
+const { buildScale } = require("../domain/build-scale");
+const { getEnharmonicSuggestion } = require("../domain/theoretical-keys");
+
+function setStaffMode(staffEl, mode) {
+    staffEl.dataset.mode = mode;
+}
+
+function renderStaffOrMessage(menu, staffEl, clef) {
+    const state = menu.getState()
+
+    if (state.selectedRoot && state.selectedType) {
+        const suggestion = getEnharmonicSuggestion(state.selectedRoot, state.selectedType);
+        if (suggestion) {
+            setStaffMode(staffEl, "message");
+            staffEl.innerHTML =
+            `<p id="staff-message">${suggestion.original} is unavailable. Try ${suggestion.suggested} instead.</p>`;
+            return;
+        }
+
+        setStaffMode(staffEl, "staff");
+        const notes = buildScale(state.selectedRoot, state.selectedType);
+        renderStaff({
+            root: state.selectedRoot,
+            type: state.selectedType,
+            notes,
+            clef
+        });
+        return;
+    }
+
+    setStaffMode(staffEl, "empty");
+    staffEl.innerHTML = "";
+}
+
+module.exports = { setStaffMode, renderStaffOrMessage };
+},{"../domain/build-scale":3,"../domain/theoretical-keys":8,"./render-staff":12}],12:[function(require,module,exports){
 const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, Barline, Annotation } = require("vexflow");
 const { LETTERS, noteToLetter } = require("../domain/note-letters");
 const { getKeySignature, getKeySigCount, getKeySigAccidentals } = require("../domain/key-signature");
@@ -615,20 +640,20 @@ function renderStaff(payload) {
     staffEl.innerHTML = ""; // clear previous render
     if (!payload) return;
 
-    const { root, type, notes: scaleNotes } = payload;
+    const { root, type, notes: scaleNotes, clef } = payload;
     if (!Array.isArray(scaleNotes) || scaleNotes.length === 0) return;
 
-    const { context, stave, staveWidth } = buildStaff(staffEl, root, type);
+    const { context, stave, staveWidth } = buildStaff(staffEl, root, type, clef);
 
     const notesToRender = [...scaleNotes, scaleNotes[0]];
     const keyAccidentals = buildKeyAccidentals(root, type);
 
-    const vexNotes = buildScaleStaveNotes(notesToRender, keyAccidentals);
+    const vexNotes = buildScaleStaveNotes(notesToRender, clef, keyAccidentals);
 
     drawNotes(context, stave, vexNotes, staveWidth);
 }
 
-function buildStaff(staffEl, root, type) {
+function buildStaff(staffEl, root, type, clef) {
     const { width, height, x, y, staveWidth } = getStaffLayout(staffEl);
 
     // Create a drawing surface inside staffEl using SVG.
@@ -640,8 +665,8 @@ function buildStaff(staffEl, root, type) {
 
     // Use the API to render graphics
     const stave = new Stave(x, y, staveWidth);
-    stave.addClef("treble");
-    
+    stave.addClef(clef);
+
     const keySig = getKeySignature(root, type);
     if (keySig) stave.addKeySignature(keySig);
 
@@ -666,9 +691,67 @@ function toVexKey(noteName, octave) {
     return `${letter}/${octave}`;
 }
 
-function buildScaleStaveNotes(notes, keyAccidentals) {
-    const rootLetter = noteToLetter(notes[0]); // "a" or "b" etc.
-    let octave = (rootLetter === "a" || rootLetter === "b" ? 3 : 4);
+const CLEF_REF = {
+    treble: { octave: 4, letterIndex: 2 },
+    bass: { octave: 2, letterIndex: 4 }
+};
+
+function getClefOctave(clef) {
+    let clefOctave = "";
+    if (clef === "treble") {
+        clefOctave = 4 ;
+    } else if (clef === "bass") {
+        clefOctave = 3;
+    }
+    return clefOctave;
+}
+
+function getLedgerPosition(letterIndex, octave, clef) {
+    const ref = CLEF_REF[clef]
+    return (octave - ref.octave) * 7 + (letterIndex - ref.letterIndex);
+}
+
+function getLedgerLines(position) {
+    if (position < 0) return Math.floor(-position / 2);
+    if (position > 8) return Math.floor((position - 8) / 2);
+    return 0;
+}
+
+function getStartingOctave(notes, clef) {
+    const baseOctave = getClefOctave(clef);
+    const candidates = clef === "treble"
+    ? [baseOctave - 1, baseOctave, baseOctave + 1]
+    : [baseOctave + 1, baseOctave, baseOctave - 1];
+
+    for (const startOctave of candidates) {
+        let octave = startOctave;
+        let prevLetterIndex = null;
+        let valid = true;
+
+        for (const n of notes) {
+            const letter = noteToLetter(n);
+            const letterIndex = LETTERS.indexOf(letter.toUpperCase());
+
+            if (prevLetterIndex !== null && letterIndex <= prevLetterIndex) {
+                octave += 1;
+            }
+            prevLetterIndex = letterIndex;
+
+            const position = getLedgerPosition(letterIndex, octave, clef);
+            if (getLedgerLines(position) > 1 ) {
+                valid = false;
+                break;
+            }
+        }
+
+        if (valid) return startOctave;
+    }
+
+    return baseOctave;
+}
+
+function buildScaleStaveNotes(notes, clef, keyAccidentals) {
+    let octave = getStartingOctave(notes, clef);
 
     let prevLetterIndex = null;
 
@@ -683,7 +766,7 @@ function buildScaleStaveNotes(notes, keyAccidentals) {
         const key = toVexKey(n, octave);
 
         const staveNote = new StaveNote({
-            clef: "treble",
+            clef,
             keys: [key],
             duration: "q"
         });
@@ -731,7 +814,7 @@ function drawNotes(context, stave, vexNotes, staveWidth) {
 
 module.exports = { renderStaff };
 
-},{"../domain/key-signature":4,"../domain/note-letters":5,"./staff-layout":11,"vexflow":1}],11:[function(require,module,exports){
+},{"../domain/key-signature":4,"../domain/note-letters":5,"./staff-layout":13,"vexflow":1}],13:[function(require,module,exports){
 const STAFF_LAYOUT = {
     fallbackWidth: 900,
 

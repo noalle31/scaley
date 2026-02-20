@@ -8,20 +8,20 @@ function renderStaff(payload) {
     staffEl.innerHTML = ""; // clear previous render
     if (!payload) return;
 
-    const { root, type, notes: scaleNotes } = payload;
+    const { root, type, notes: scaleNotes, clef } = payload;
     if (!Array.isArray(scaleNotes) || scaleNotes.length === 0) return;
 
-    const { context, stave, staveWidth } = buildStaff(staffEl, root, type);
+    const { context, stave, staveWidth } = buildStaff(staffEl, root, type, clef);
 
     const notesToRender = [...scaleNotes, scaleNotes[0]];
     const keyAccidentals = buildKeyAccidentals(root, type);
 
-    const vexNotes = buildScaleStaveNotes(notesToRender, keyAccidentals);
+    const vexNotes = buildScaleStaveNotes(notesToRender, clef, keyAccidentals);
 
     drawNotes(context, stave, vexNotes, staveWidth);
 }
 
-function buildStaff(staffEl, root, type) {
+function buildStaff(staffEl, root, type, clef) {
     const { width, height, x, y, staveWidth } = getStaffLayout(staffEl);
 
     // Create a drawing surface inside staffEl using SVG.
@@ -33,8 +33,8 @@ function buildStaff(staffEl, root, type) {
 
     // Use the API to render graphics
     const stave = new Stave(x, y, staveWidth);
-    stave.addClef("treble");
-    
+    stave.addClef(clef);
+
     const keySig = getKeySignature(root, type);
     if (keySig) stave.addKeySignature(keySig);
 
@@ -59,9 +59,67 @@ function toVexKey(noteName, octave) {
     return `${letter}/${octave}`;
 }
 
-function buildScaleStaveNotes(notes, keyAccidentals) {
-    const rootLetter = noteToLetter(notes[0]); // "a" or "b" etc.
-    let octave = (rootLetter === "a" || rootLetter === "b" ? 3 : 4);
+const CLEF_REF = {
+    treble: { octave: 4, letterIndex: 2 },
+    bass: { octave: 2, letterIndex: 4 }
+};
+
+function getClefOctave(clef) {
+    let clefOctave = "";
+    if (clef === "treble") {
+        clefOctave = 4 ;
+    } else if (clef === "bass") {
+        clefOctave = 3;
+    }
+    return clefOctave;
+}
+
+function getLedgerPosition(letterIndex, octave, clef) {
+    const ref = CLEF_REF[clef]
+    return (octave - ref.octave) * 7 + (letterIndex - ref.letterIndex);
+}
+
+function getLedgerLines(position) {
+    if (position < 0) return Math.floor(-position / 2);
+    if (position > 8) return Math.floor((position - 8) / 2);
+    return 0;
+}
+
+function getStartingOctave(notes, clef) {
+    const baseOctave = getClefOctave(clef);
+    const candidates = clef === "treble"
+    ? [baseOctave - 1, baseOctave, baseOctave + 1]
+    : [baseOctave + 1, baseOctave, baseOctave - 1];
+
+    for (const startOctave of candidates) {
+        let octave = startOctave;
+        let prevLetterIndex = null;
+        let valid = true;
+
+        for (const n of notes) {
+            const letter = noteToLetter(n);
+            const letterIndex = LETTERS.indexOf(letter.toUpperCase());
+
+            if (prevLetterIndex !== null && letterIndex <= prevLetterIndex) {
+                octave += 1;
+            }
+            prevLetterIndex = letterIndex;
+
+            const position = getLedgerPosition(letterIndex, octave, clef);
+            if (getLedgerLines(position) > 1 ) {
+                valid = false;
+                break;
+            }
+        }
+
+        if (valid) return startOctave;
+    }
+
+    return baseOctave;
+}
+
+function buildScaleStaveNotes(notes, clef, keyAccidentals) {
+    let octave = getStartingOctave(notes, clef);
 
     let prevLetterIndex = null;
 
@@ -76,7 +134,7 @@ function buildScaleStaveNotes(notes, keyAccidentals) {
         const key = toVexKey(n, octave);
 
         const staveNote = new StaveNote({
-            clef: "treble",
+            clef,
             keys: [key],
             duration: "q"
         });
