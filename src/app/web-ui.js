@@ -1,5 +1,5 @@
 const { createMenu } = require("../ui/menu");
-const { renderStaffOrMessage, setStaffMode } = require("../ui/render-staff-logic");
+const { renderStaffOrMessage, setStaffMode } = require("../domain/render-staff-logic");
 const { renderMenuSection } = require("../ui/render-menu");
 
 const titleEl = document.getElementById("title");

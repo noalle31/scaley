@@ -1,6 +1,6 @@
-const { renderStaff } = require("./render-staff");
-const { buildScale } = require("../domain/build-scale");
-const { getEnharmonicSuggestion } = require("../domain/theoretical-keys");
+const { renderStaff } = require("../ui/render-staff");
+const { buildScale } = require("./build-scale");
+const { getEnharmonicSuggestion } = require("./theoretical-keys");
 
 function setStaffMode(staffEl, mode) {
     staffEl.dataset.mode = mode;

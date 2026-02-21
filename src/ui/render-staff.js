@@ -1,7 +1,9 @@
 const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, Barline, Annotation } = require("vexflow");
 const { LETTERS, noteToLetter } = require("../domain/note-letters");
+const { toVexKey } = require("../domain/vex-keys");
 const { getKeySignature, getKeySigCount, getKeySigAccidentals } = require("../domain/key-signature");
 const { getStaffLayout } = require("./staff-layout");
+const { getStartingOctave } = require("../domain/octave-logic");
 
 function renderStaff(payload) {
     const staffEl = document.getElementById("staff");
@@ -54,69 +56,7 @@ function buildKeyAccidentals(root, type) {
     return getKeySigAccidentals(count);
 }
 
-function toVexKey(noteName, octave) {
-    const letter = noteToLetter(noteName);
-    return `${letter}/${octave}`;
-}
 
-const CLEF_REF = {
-    treble: { octave: 4, letterIndex: 2 },
-    bass: { octave: 2, letterIndex: 4 }
-};
-
-function getClefOctave(clef) {
-    let clefOctave = "";
-    if (clef === "treble") {
-        clefOctave = 4 ;
-    } else if (clef === "bass") {
-        clefOctave = 3;
-    }
-    return clefOctave;
-}
-
-function getLedgerPosition(letterIndex, octave, clef) {
-    const ref = CLEF_REF[clef]
-    return (octave - ref.octave) * 7 + (letterIndex - ref.letterIndex);
-}
-
-function getLedgerLines(position) {
-    if (position < 0) return Math.floor(-position / 2);
-    if (position > 8) return Math.floor((position - 8) / 2);
-    return 0;
-}
-
-function getStartingOctave(notes, clef) {
-    const baseOctave = getClefOctave(clef);
-    const candidates = clef === "treble"
-    ? [baseOctave - 1, baseOctave, baseOctave + 1]
-    : [baseOctave + 1, baseOctave, baseOctave - 1];
-
-    for (const startOctave of candidates) {
-        let octave = startOctave;
-        let prevLetterIndex = null;
-        let valid = true;
-
-        for (const n of notes) {
-            const letter = noteToLetter(n);
-            const letterIndex = LETTERS.indexOf(letter.toUpperCase());
-
-            if (prevLetterIndex !== null && letterIndex <= prevLetterIndex) {
-                octave += 1;
-            }
-            prevLetterIndex = letterIndex;
-
-            const position = getLedgerPosition(letterIndex, octave, clef);
-            if (getLedgerLines(position) > 1 ) {
-                valid = false;
-                break;
-            }
-        }
-
-        if (valid) return startOctave;
-    }
-
-    return baseOctave;
-}
 
 function buildScaleStaveNotes(notes, clef, keyAccidentals) {
     let octave = getStartingOctave(notes, clef);

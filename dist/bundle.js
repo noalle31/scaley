@@ -7,7 +7,7 @@
 
 },{}],2:[function(require,module,exports){
 const { createMenu } = require("../ui/menu");
-const { renderStaffOrMessage, setStaffMode } = require("../ui/render-staff-logic");
+const { renderStaffOrMessage, setStaffMode } = require("../domain/render-staff-logic");
 const { renderMenuSection } = require("../ui/render-menu");
 
 const titleEl = document.getElementById("title");
@@ -127,7 +127,7 @@ document.addEventListener("keydown", (e) => {
 
 render();
 
-},{"../ui/menu":9,"../ui/render-menu":10,"../ui/render-staff-logic":11}],3:[function(require,module,exports){
+},{"../domain/render-staff-logic":8,"../ui/menu":12,"../ui/render-menu":13}],3:[function(require,module,exports){
 const { getLetterSequence } = require("./note-letters")
 const { NATURAL_PITCH_CLASSES, rootToPc, buildTargetPcs } = require("./pitch-classes");
 const SCALE_PATTERNS = require("./scale-types");
@@ -197,7 +197,7 @@ module.exports = {
   buildScale
 };
 
-},{"./note-letters":5,"./pitch-classes":6,"./scale-types":7}],4:[function(require,module,exports){
+},{"./note-letters":5,"./pitch-classes":7,"./scale-types":9}],4:[function(require,module,exports){
 const { MINOR_TYPES } = require("./scale-types");
 
 const SHARP_ORDER = ["F", "C", "G", "D", "A", "E", "B"];
@@ -280,7 +280,7 @@ module.exports = {
     getKeySigAccidentals
 };
 
-},{"./scale-types":7}],5:[function(require,module,exports){
+},{"./scale-types":9}],5:[function(require,module,exports){
 const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
 
 function noteToLetter(noteName) {
@@ -305,10 +305,95 @@ function getLetterSequence(root) {
 module.exports = { 
     LETTERS,
     noteToLetter,
-    getLetterSequence
+    getLetterSequence,
 };
 
 },{}],6:[function(require,module,exports){
+const { LETTERS, noteToLetter } = require("./note-letters");
+
+const LETTER_SEMITONES = {
+    C: 0,
+    D: 2,
+    E: 4,
+    F: 5,
+    G: 7,
+    A: 9,
+    B: 11
+};
+
+const ACCIDENTAL_OFFSET = {
+    "": 0,
+    "#": 1,
+    "##": 2,
+    "b":  -1,
+    "bb": -2
+};
+
+function getNoteScore(noteName, octave) {
+    const letter = noteName[0];
+    const accidental = noteName.slice(1);
+    return octave * 12 + LETTER_SEMITONES[letter] + ACCIDENTAL_OFFSET[accidental];
+}
+
+const RANGES = {
+    treble: { 
+        low: getNoteScore("C", 4),
+        high: getNoteScore("A", 5)
+    },
+    bass: { 
+        low: getNoteScore("E", 2),
+        high: getNoteScore("C", 4)
+    }
+};
+
+function checkInRange(noteName, octave, clef) {
+    const score = getNoteScore(noteName, octave);
+    const range = RANGES[clef];
+    return score >= range.low && score <=range.high;
+}
+
+function getClefOctave(clef) {
+    if (clef === "treble") return 4;
+    if (clef === "bass") return 3;
+    return null;
+}
+
+function getStartingOctave(notes, clef) {
+    const baseOctave = getClefOctave(clef);
+    const candidates = clef === "treble"
+        ? [baseOctave - 1, baseOctave, baseOctave + 1]
+        : [baseOctave + 1, baseOctave, baseOctave - 1];
+
+    for (const startOctave of candidates) {
+        let octave = startOctave;
+        let prevLetterIndex = null;
+        let valid = true;
+
+        for (const n of notes) {
+            const letter = noteToLetter(n);
+            const letterIndex = LETTERS.indexOf(letter.toUpperCase());
+
+            if (prevLetterIndex !== null && letterIndex <= prevLetterIndex) {
+                octave += 1;
+            }
+            prevLetterIndex = letterIndex;
+
+            if (!checkInRange(n, octave, clef)) {
+                valid = false;
+                break;
+            }
+        }
+        
+        if (valid) return startOctave;
+    }
+    
+    return baseOctave;
+}
+
+module.exports = { getStartingOctave };
+
+
+},{"./note-letters":5}],7:[function(require,module,exports){
 const { ROOT_OPTIONS } = require("./scale-types");
 
 const NATURAL_PITCH_CLASSES = {
@@ -362,7 +447,44 @@ module.exports = {
   buildTargetPcs,
 };
 
-},{"./scale-types":7}],7:[function(require,module,exports){
+},{"./scale-types":9}],8:[function(require,module,exports){
+const { renderStaff } = require("../ui/render-staff");
+const { buildScale } = require("./build-scale");
+const { getEnharmonicSuggestion } = require("./theoretical-keys");
+
+function setStaffMode(staffEl, mode) {
+    staffEl.dataset.mode = mode;
+}
+
+function renderStaffOrMessage(menu, staffEl, clef) {
+    const state = menu.getState()
+
+    if (state.selectedRoot && state.selectedType) {
+        const suggestion = getEnharmonicSuggestion(state.selectedRoot, state.selectedType);
+        if (suggestion) {
+            setStaffMode(staffEl, "message");
+            staffEl.innerHTML =
+            `<p id="staff-message">${suggestion.original} is unavailable. Try ${suggestion.suggested} instead.</p>`;
+            return;
+        }
+
+        setStaffMode(staffEl, "staff");
+        const notes = buildScale(state.selectedRoot, state.selectedType);
+        renderStaff({
+            root: state.selectedRoot,
+            type: state.selectedType,
+            notes,
+            clef
+        });
+        return;
+    }
+
+    setStaffMode(staffEl, "empty");
+    staffEl.innerHTML = "";
+}
+
+module.exports = { setStaffMode, renderStaffOrMessage };
+},{"../ui/render-staff":14,"./build-scale":3,"./theoretical-keys":10}],9:[function(require,module,exports){
 const ROOT_OPTIONS = [
   "C",
   "G",
@@ -415,7 +537,7 @@ module.exports = {
   MINOR_TYPES,
   ...SCALE_PATTERNS
 };
-},{}],8:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 const { MINOR_TYPES } = require("./scale-types");
 
 const THEORETICAL_MINOR_SUGGESTIONS = {
@@ -438,7 +560,16 @@ module.exports = {
     getEnharmonicSuggestion
 };
 
-},{"./scale-types":7}],9:[function(require,module,exports){
+},{"./scale-types":9}],11:[function(require,module,exports){
+const { noteToLetter } = require("../domain/note-letters");
+
+function toVexKey(noteName, octave) {
+    const letter = noteToLetter(noteName);
+    return `${letter}/${octave}`;
+}
+
+module.exports = { toVexKey};
+},{"../domain/note-letters":5}],12:[function(require,module,exports){
 const { ROOT_OPTIONS, TYPE_OPTIONS } = require("../domain/scale-types");
 
 function createMenu() {
@@ -563,7 +694,7 @@ function createMenu() {
 
 module.exports = { createMenu };
 
-},{"../domain/scale-types":7}],10:[function(require,module,exports){
+},{"../domain/scale-types":9}],13:[function(require,module,exports){
 function renderMenuSection(label, menuName, options, selectedIndex, onOptionsTap) {
     const section = document.createElement("div");
     section.className = "menu-section";
@@ -592,48 +723,13 @@ function renderMenuSection(label, menuName, options, selectedIndex, onOptionsTap
 }
 
 module.exports = { renderMenuSection };
-},{}],11:[function(require,module,exports){
-const { renderStaff } = require("./render-staff");
-const { buildScale } = require("../domain/build-scale");
-const { getEnharmonicSuggestion } = require("../domain/theoretical-keys");
-
-function setStaffMode(staffEl, mode) {
-    staffEl.dataset.mode = mode;
-}
-
-function renderStaffOrMessage(menu, staffEl, clef) {
-    const state = menu.getState()
-
-    if (state.selectedRoot && state.selectedType) {
-        const suggestion = getEnharmonicSuggestion(state.selectedRoot, state.selectedType);
-        if (suggestion) {
-            setStaffMode(staffEl, "message");
-            staffEl.innerHTML =
-            `<p id="staff-message">${suggestion.original} is unavailable. Try ${suggestion.suggested} instead.</p>`;
-            return;
-        }
-
-        setStaffMode(staffEl, "staff");
-        const notes = buildScale(state.selectedRoot, state.selectedType);
-        renderStaff({
-            root: state.selectedRoot,
-            type: state.selectedType,
-            notes,
-            clef
-        });
-        return;
-    }
-
-    setStaffMode(staffEl, "empty");
-    staffEl.innerHTML = "";
-}
-
-module.exports = { setStaffMode, renderStaffOrMessage };
-},{"../domain/build-scale":3,"../domain/theoretical-keys":8,"./render-staff":12}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental, Barline, Annotation } = require("vexflow");
 const { LETTERS, noteToLetter } = require("../domain/note-letters");
+const { toVexKey } = require("../domain/vex-keys");
 const { getKeySignature, getKeySigCount, getKeySigAccidentals } = require("../domain/key-signature");
 const { getStaffLayout } = require("./staff-layout");
+const { getStartingOctave } = require("../domain/octave-logic");
 
 function renderStaff(payload) {
     const staffEl = document.getElementById("staff");
@@ -686,69 +782,7 @@ function buildKeyAccidentals(root, type) {
     return getKeySigAccidentals(count);
 }
 
-function toVexKey(noteName, octave) {
-    const letter = noteToLetter(noteName);
-    return `${letter}/${octave}`;
-}
 
-const CLEF_REF = {
-    treble: { octave: 4, letterIndex: 2 },
-    bass: { octave: 2, letterIndex: 4 }
-};
-
-function getClefOctave(clef) {
-    let clefOctave = "";
-    if (clef === "treble") {
-        clefOctave = 4 ;
-    } else if (clef === "bass") {
-        clefOctave = 3;
-    }
-    return clefOctave;
-}
-
-function getLedgerPosition(letterIndex, octave, clef) {
-    const ref = CLEF_REF[clef]
-    return (octave - ref.octave) * 7 + (letterIndex - ref.letterIndex);
-}
-
-function getLedgerLines(position) {
-    if (position < 0) return Math.floor(-position / 2);
-    if (position > 8) return Math.floor((position - 8) / 2);
-    return 0;
-}
-
-function getStartingOctave(notes, clef) {
-    const baseOctave = getClefOctave(clef);
-    const candidates = clef === "treble"
-    ? [baseOctave - 1, baseOctave, baseOctave + 1]
-    : [baseOctave + 1, baseOctave, baseOctave - 1];
-
-    for (const startOctave of candidates) {
-        let octave = startOctave;
-        let prevLetterIndex = null;
-        let valid = true;
-
-        for (const n of notes) {
-            const letter = noteToLetter(n);
-            const letterIndex = LETTERS.indexOf(letter.toUpperCase());
-
-            if (prevLetterIndex !== null && letterIndex <= prevLetterIndex) {
-                octave += 1;
-            }
-            prevLetterIndex = letterIndex;
-
-            const position = getLedgerPosition(letterIndex, octave, clef);
-            if (getLedgerLines(position) > 1 ) {
-                valid = false;
-                break;
-            }
-        }
-
-        if (valid) return startOctave;
-    }
-
-    return baseOctave;
-}
 
 function buildScaleStaveNotes(notes, clef, keyAccidentals) {
     let octave = getStartingOctave(notes, clef);
@@ -814,7 +848,7 @@ function drawNotes(context, stave, vexNotes, staveWidth) {
 
 module.exports = { renderStaff };
 
-},{"../domain/key-signature":4,"../domain/note-letters":5,"./staff-layout":13,"vexflow":1}],13:[function(require,module,exports){
+},{"../domain/key-signature":4,"../domain/note-letters":5,"../domain/octave-logic":6,"../domain/vex-keys":11,"./staff-layout":15,"vexflow":1}],15:[function(require,module,exports){
 const STAFF_LAYOUT = {
     fallbackWidth: 900,
 

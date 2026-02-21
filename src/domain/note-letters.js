@@ -22,5 +22,5 @@ function getLetterSequence(root) {
 module.exports = { 
     LETTERS,
     noteToLetter,
-    getLetterSequence
+    getLetterSequence,
 };
