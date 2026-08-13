@@ -1,14 +1,14 @@
 # Scaley 🎼
 
-A musical scale builder that renders scales on a staff in standard notation, complete with key signatures and clef support.
+A musical app that builds a scale based on root note and scale type and renders it on a staff.
 
 ## How It Works
 
-- Select a root note (e.g. `C`, `F#`, `Bb`)
-- Select a scale type (see supported scales below)
-- Select a clef (treble or bass)
+- Select a root note
+- Select a scale type
+- Select a clef
 
-Scaley builds the full scale using correct note spelling for that key and renders the result on a musical staff in standard notation, including the appropriate key signature. For theoretically unsupported keys (e.g. Db minor, Gb minor), it surfaces an enharmonic alternative instead.
+Scaley builds the full scale (using correct enharmonic 'note spelling') for that key and renders the result on a musical staff in standard notation, including the appropriate key signature. In some cases (e.g. Db minor, Gb minor), it surfaces an enharmonic alternative instead.
 
 ## Supported Scales
 
@@ -66,9 +66,9 @@ npx playwright install
 
 ## Built with
 
-- [VexFlow](https://www.vexflow.com/) — music notation rendering
-- [Browserify](https://browserify.org/) — bundling for the browser
-- [Playwright](https://playwright.dev/) — end-to-end tests
+- [VexFlow](https://www.vexflow.com/) - music notation rendering
+- [Browserify](https://browserify.org/) - bundling for the browser
+- [Playwright](https://playwright.dev/) - end-to-end tests
 
 ## Project Structure
 

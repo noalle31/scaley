@@ -23,7 +23,7 @@ function render() {
     const state = menu.getState();
 
     titleEl.textContent = menu.getTitle();
-    headerEl.textContent = "Scaley - The Magical Scale Builder"
+    headerEl.textContent = "Scaley"
 
     optionsEl.innerHTML = "";
 
